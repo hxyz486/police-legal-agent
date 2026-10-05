@@ -160,7 +160,7 @@ export function createContextMessage(line) {
     id: globalThis.crypto.randomUUID(),
     role: 'user',
     content: [{ type: 'text', text: line }],
-    source: { kind: 'plugin', plugin: name },
+    source: { kind: 'plugin:' + name },
   }
 }
 

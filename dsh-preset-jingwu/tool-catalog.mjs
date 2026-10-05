@@ -423,7 +423,7 @@ export function createCatalogMessage(entries, presentation = 'native', inactive 
     id: globalThis.crypto.randomUUID(),
     role: 'user',
     content: [{ type: 'text', text: renderCatalogText(entries, presentation, inactive) }],
-    source: { kind: 'plugin', plugin: name },
+    source: { kind: 'plugin:' + name },
   }
 }
 
