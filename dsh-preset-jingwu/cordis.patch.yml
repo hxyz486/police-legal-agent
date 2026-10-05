@@ -149,8 +149,13 @@
         - id: tool-workflow
           name: '@deepseek-ai/dsh-tool-workflow'
           disabled: true
+        # tool-ralph 注入 workflowEngine（唯一提供者是 @deepseek-ai/dsh-workflow-ptc）。
+        # 本预设有意不挂 workflow-ptc（tool-workflow 也已关闭），所以这里必须像官方
+        # standard/ptc/cordis 预设一样关闭它；否则该行永远 "waiting for
+        # workflowEngine"，而注册表把 pending 行也算作 broken → 整个预设显示「加载失败」。
         - id: tool-ralph
           name: '@deepseek-ai/dsh-tool-ralph'
+          disabled: true
           config:
             subagentProvider: spawn
             maxRounds: 64
