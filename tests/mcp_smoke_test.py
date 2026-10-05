@@ -94,7 +94,7 @@ def main():
         ar = json.loads(r4["result"]["content"][0]["text"])
         assert ar["exists"] is True and ar["level"] == "高", ar
         assert ar["risk_persons"][0]["name"] == "赵XX", ar
-        assert ar["law_references"], ar
+        assert isinstance(ar["law_references"], list), ar
         print(f"[OK] risk_assess: level={ar['level']} refs={len(ar['law_references'])}")
     finally:
         proc.kill()

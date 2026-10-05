@@ -159,6 +159,10 @@ SNIPPET_MAX_CHARS = int(os.environ.get("SNIPPET_MAX_CHARS", "600"))
 # Q7 多引 5 条、Q10 多引 2 条，引用精度被严重拖累。
 MAX_SOURCES = int(os.environ.get("MAX_SOURCES", "3"))
 
+# sources 输出形态：0（默认）= 一条引用一个 source（dsh/智能体消费友好）；
+# 1 = 恢复赛题金标的顿号合并形态（《法A》《法B》第X条、第Y条挤在一条里）。
+MERGE_SOURCES = os.environ.get("MERGE_SOURCES", "0") == "1"
+
 
 # ---------------- 模型候选清单 ----------------
 # 官方接口文档中的模型优先，探测不可用时按序自动切换到后续候选。

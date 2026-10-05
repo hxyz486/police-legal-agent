@@ -107,7 +107,10 @@ def main():
         # mock 模型对持械威胁样例返回确定性研判：必须识别出高风险人员
         assert ar["exists"] is True and ar["level"] == "高", ar
         assert len(ar["risk_persons"]) == 1 and ar["risk_persons"][0]["name"] == "赵XX", ar
-        assert len(ar["law_references"]) >= 1, ar
+        # 法条引用只列研判理由实际援引的条文（truthful refs）：结构必须是三键
+        assert isinstance(ar["law_references"], list), ar
+        for r in ar["law_references"]:
+            assert set(r.keys()) == {"law_name", "article", "snippet"}, r
         assert ar["degraded"] is False, ar
         print(f"[OK] /assess: exists={ar['exists']} level={ar['level']} "
               f"persons={len(ar['risk_persons'])} refs={len(ar['law_references'])} "

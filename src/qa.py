@@ -10,11 +10,29 @@ import config
 import preset as preset_mod
 import rules
 from laws import extract_snippet
-from sources import merge_sources
+from sources import article_body, merge_sources
 
 log = logging.getLogger("sait3.qa")
 
 _PRESET = None
+
+
+def _final_sources(entries):
+    """sources 输出形态。
+
+    默认（MERGE_SOURCES=0）一条引用一个 source——dsh/智能体消费时逐条可读、
+    可点溯源；合并成"《法A》《法B》第X条、第Y条"的顿号形态是赛题金标格式，
+    需要复现官方样例输出时设 MERGE_SOURCES=1。
+    """
+    if config.MERGE_SOURCES:
+        return merge_sources(entries)[:config.MAX_SOURCES]
+    out = []
+    for e in entries[:config.MAX_SOURCES]:
+        if not e.get("law_name") or not e.get("article"):
+            continue
+        out.append({"law_name": e["law_name"], "article": e["article"],
+                    "snippet": article_body(e.get("text", ""))})
+    return out
 
 
 def _preset_store():
@@ -109,6 +127,10 @@ def answer(question, retriever):
         ruled = _fallback_answer(question, arts, getattr(retriever, "idf", None))
         if ruled is not None:
             _set_route("rule")
+            # 降级必须明示：规则合成的引用是检索原文而非模型核对过的结论，
+            # 不声明的话会被上层智能体当成已验证答案直接转述，误导性极强。
+            ruled["answer"] = ("【模型通道不可用，以下内容由确定性规则合成，"
+                               "引用为知识库检索原文，请核实后再采信】\n" + ruled["answer"])
             return ruled
     entries = _citation_entries(answer_text, arts, all_articles)
     if config.SECOND_PASS and entries and not _is_fallback_text(answer_text):
@@ -131,7 +153,7 @@ def answer(question, retriever):
                     answer_text = answer_text.rstrip() + "\n" + _add
     _set_route("llm+repair" if locals().get("_add") else "llm")
     return {"answer": _finalize_answer(answer_text),
-            "sources": merge_sources(entries)[:config.MAX_SOURCES]}
+            "sources": _final_sources(entries)}
 
 
 def _plus_degrade(arts, question):
@@ -159,7 +181,7 @@ def _plus_degrade(arts, question):
         entries.append({"law_name": _fmt_law(a.law_name), "article": a.article,
                         "text": a.text})
     ans = "；".join(lines) + "。具体处理措施应结合案件事实，依照上述法律规定执行，必要时报请法制部门审核。"
-    return {"answer": ans, "sources": merge_sources(entries)}
+    return {"answer": ans, "sources": _final_sources(entries)}
 
 
 def _fallback_answer(question, arts, idf=None):
@@ -199,7 +221,7 @@ def _rule_answer(question, arts, idf=None):
         ans = ans + "\n补充依据：" + "；".join(extra)
     entries = [{"law_name": _fmt_law(a.law_name), "article": a.article, "text": a.text}
                for a in arts[:max(config.MAX_SOURCES, 2)]]
-    return {"answer": ans, "sources": merge_sources(entries)}
+    return {"answer": ans, "sources": _final_sources(entries)}
 
 
 def _is_fallback_text(text):
@@ -209,14 +231,20 @@ def _is_fallback_text(text):
 
 
 def _ask_llm(question, arts):
+    tail = "\n\n民警的问题：" + question + \
+        "\n\n请按系统要求作答（先给答复，末尾给出\"引用：\"行）。"
+    # 字符预算只约束法条上下文：问题拼在尾部，此前的"整体超长从尾部截断"
+    # 会把问题本身切掉，模型只看到一堆法条 → 回答"未提供具体问题"（实测缺陷）。
+    budget = max(1200, config.MAX_INPUT_CHARS - len(CONTEXT_HEADER) - len(tail))
     contexts = []
+    used = 0
     for i, a in enumerate(arts, 1):
-        contexts.append("[%d] %s%s：\n%s" % (i, _fmt_law(a.law_name), a.article, a.text))
-    prompt = CONTEXT_HEADER + "\n\n".join(contexts)
-    prompt += "\n\n民警的问题：" + question
-    prompt += "\n\n请按系统要求作答（先给答复，末尾给出\"引用：\"行）。"
-    if len(prompt) > config.MAX_INPUT_CHARS:
-        prompt = prompt[:config.MAX_INPUT_CHARS]
+        block = "[%d] %s%s：\n%s" % (i, _fmt_law(a.law_name), a.article, a.text)
+        if used + len(block) > budget and contexts:
+            break  # 预算用尽：丢弃剩余（排序靠后的）条文，保问题完整
+        contexts.append(block[:max(0, budget - used)])
+        used += len(contexts[-1])
+    prompt = CONTEXT_HEADER + "\n\n".join(contexts) + tail
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": prompt},
@@ -336,7 +364,7 @@ def _citation_entries(text, arts, all_articles=None):
 
 def _build_sources(text, arts, question, all_articles=None):
     """兼容入口：解析引用并合并为官方金标形态 sources。"""
-    return merge_sources(_citation_entries(text, arts, all_articles))[:config.MAX_SOURCES]
+    return _final_sources(_citation_entries(text, arts, all_articles))
 
 
 def _src(a, question):
@@ -367,7 +395,7 @@ def fallback_answer(question, retriever, top_k=6):
     lines.append("请结合具体案情适用。")
     entries = [{"law_name": _fmt_law(a.law_name), "article": a.article, "text": a.text}
                for a in arts[:top_k]]
-    return {"answer": "\n".join(lines), "sources": merge_sources(entries)}
+    return {"answer": "\n".join(lines), "sources": _final_sources(entries)}
 
 
 # ---------------- 二次校验（答案/引用复核纠错） ----------------

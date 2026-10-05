@@ -46,6 +46,22 @@ def setup_logging():
         print(f"[WARN] 无法写日志文件 {config.LOG_PATH}: {e}", file=sys.stderr)
 
 
+def _retrieval_query(text: str) -> str:
+    """接地检索的查询串：优先取【警情内容及处置情况】段落——动作与情节都在
+    这里；【当事人信息】的登记表头（姓名/性别/出生年月/身份证号）会稀释
+    关键词得分，把检索带偏到程序规定尾部条文（实测缺陷）。缺失时回退全文。"""
+    if "【警情内容及处置情况】" in text:
+        seg = text.split("【警情内容及处置情况】", 1)[1]
+        for stop in ("【", "\n\n"):
+            idx = seg.find(stop)
+            if idx > 0:
+                seg = seg[:idx]
+        seg = seg.strip()
+        if seg:
+            return seg[:1000]
+    return text[:1000]
+
+
 def legal_context(text: str, retriever):
     """从共享法律索引检索与警情相关的法条，生成提示词接地文本块。
 
@@ -61,7 +77,7 @@ def legal_context(text: str, retriever):
     if not app_config.RISK_GROUNDING:
         return None
     try:
-        arts = retriever.search(text[:1000], top_k=app_config.RISK_GROUNDING_TOP_K)
+        arts = retriever.search(_retrieval_query(text), top_k=app_config.RISK_GROUNDING_TOP_K)
     except Exception:  # noqa: BLE001
         return None
     if not arts:
@@ -233,6 +249,17 @@ def assess_one(text: str, retriever=None):
         if row5 is None:
             raise RuntimeError("全部研判尝试均失败")
         names, ids, exists, level, reasons = row5
+        # 只保留研判理由/人员依据里实际援引的条文：接地检索是宽召回的"参考"，
+        # 把模型没采用的无关条文原样列进 law_references 会误导上层智能体（实测缺陷）。
+        hay = " ".join([reasons or ""] +
+                       [p.get("reason", "") for p in (persons or []) if isinstance(p, dict)])
+
+        def _cited(r):
+            law = r.get("law_name", "")
+            short = law[4:] if law.startswith("中华人民共和国") else law
+            return (short and short in hay and r.get("article", "") in hay) or \
+                   (law in hay and r.get("article", "") in hay)
+        refs = [r for r in refs if _cited(r)]
         out = {
             "exists": str(exists).strip().lower() == "true",
             "level": level,
