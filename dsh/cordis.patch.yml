@@ -1,0 +1,19 @@
+# police-legal-agent 的 dsh 组合包补丁：注册 law_qa / risk_assess / risk_assess_batch
+# 三个 MCP 工具。安装本插件后，dsh 会话中出现 mcp__police-legal-agent__* 工具。
+#
+# 模型网关凭据不随插件分发：默认继承环境变量（LLM_API_URL / LLM_API_KEY /
+# EMBEDDING_API_URL / ...，可在系统/用户环境变量里设置，或用 profile 的
+# cordis.patch.yml 对 id `mcp-police-legal-agent` 做 config 覆写注入）。
+# 未配置密钥时工具自动降级（问答走规则合成层，研判返回降级结构）。
+- insert:
+    - id: mcp-police-legal-agent
+      name: "@deepseek-ai/dsh-mcp-client"
+      config:
+        serverName: police-legal-agent
+        transport: stdio
+        command: 'python'
+        args:
+          # 本插件被 pnpm 装进 profile 的 node_modules，安装路径因机器而异，
+          # 激活时用 USERPROFILE 动态解析（桌面版默认 profile 为 desktop）。
+          - !!js process.env.USERPROFILE + '/.dsh/profiles/desktop/node_modules/police-legal-agent/mcp_server.py'
+        toolCallTimeoutMs: 600000

@@ -1,0 +1,12 @@
+{
+  "name": "police-legal-agent",
+  "version": "1.0.0",
+  "description": "公安法律智能体：法律问答 RAG + 警情风险研判，共享法条索引（dsh 组合包插件，MCP 接入）",
+  "private": false,
+  "license": "MIT",
+  "dsh": {
+    "bundle": {
+      "patch": "dsh/cordis.patch.yml"
+    }
+  }
+}

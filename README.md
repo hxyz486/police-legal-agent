@@ -35,32 +35,31 @@ POST /assess   {"text":"【当事人信息】…【警情内容及处置情况�
 
 任何异常都返回 200 + 合法 JSON（服务永不 5xx，研判失败自动降级）。
 
-### 2. dsh 插件（MCP 服务器）
+### 2. dsh 插件（一键安装，MCP 接入）
 
-本仓库自带 MCP stdio 服务器，可注册进 [dsh（DeepSeek Harness）](https://deepseek.com)等支持 MCP 的客户端，工具在会话中出现为 `mcp__police-legal-agent__*`：
+本仓库声明了 `dsh.bundle.patch`，是标准的 **dsh（DeepSeek Harness）组合包插件**。dsh 桌面版：
+
+**插件 → 安装插件 → 填入 `https://github.com/hxyz486/police-legal-agent` → 安装**，重启后 dsh 会话中出现三个 MCP 工具：
 
 - `law_qa(question)` — 法律问答
 - `risk_assess(text)` — 单条警情研判
 - `risk_assess_batch(input_xlsx, output_xlsx)` — 批量研判
 
-dsh 注册方式：编辑 `~/.dsh/profiles/<profile>/cordis.patch.yml`，在 `- insert:` 列表中加入：
+模型网关凭据不随插件分发，两种配置方式任选：
+
+1. **环境变量**：在系统/用户环境变量设置 `LLM_API_URL` / `LLM_API_KEY`（可选 `EMBEDDING_API_URL` / `RERANK_API_URL` / `LLM_MODEL`），重启 dsh；
+2. **profile 覆写**：编辑 `~/.dsh/profiles/desktop/cordis.patch.yml`，对插件插入的条目做 id 定向配置覆写：
 
 ```yaml
-    - id: mcp-police-legal-agent
-      name: "@deepseek-ai/dsh-mcp-client"
-      config:
-        serverName: police-legal-agent
-        transport: stdio
-        command: <python 解释器路径>
-        args:
-          - <本仓库路径>/mcp_server.py
-        env:
-          LLM_API_URL: <模型网关地址>
-          LLM_API_KEY: <密钥>
-        toolCallTimeoutMs: 600000
+- id: mcp-police-legal-agent
+  config:
+    env:
+      LLM_API_URL: 'http://<网关>/v1'
+      LLM_API_KEY: '<密钥>'
+      LLM_MODEL: '<模型名>'
 ```
 
-重启 dsh 后生效。任意 MCP 客户端（Claude Desktop、Cline 等）也可用同样参数接入。
+未配置密钥时插件仍可安装启动，工具自动降级（问答走确定性规则合成层，研判返回降级结构）。任意其他 MCP 客户端（Claude Desktop、Cline 等）也可直接 stdio 接入 `mcp_server.py`。
 
 ### 3. 批量研判 CLI
 
