@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+log/
+logs/
+data/
+output/
+input/*.xlsx
+*.tar
+*.tar.gz
+.env
