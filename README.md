@@ -45,6 +45,8 @@ POST /assess   {"text":"【当事人信息】…【警情内容及处置情况�
 - `risk_assess(text)` — 单条警情研判
 - `risk_assess_batch(input_xlsx, output_xlsx)` — 批量研判
 
+同一个组合包还会注册一个 **Agent 预设「警务助手」**（`dsh.bundle.patch` 的第二个文件 `dsh-preset-jingwu/cordis.patch.yml`）：新建任务时在 **设置 → Agent 预设** 里选中它，Agent 就按执法辅助模式工作——法条问题一律先调 `law_qa`、警情研判先调 `risk_assess`、xlsx 批量走 `risk_assess_batch`，回答保持带 `sources` 引用的一句话金标形态。
+
 模型网关凭据不随插件分发，两种配置方式任选：
 
 1. **环境变量**：在系统/用户环境变量设置 `LLM_API_URL` / `LLM_API_KEY`（可选 `EMBEDDING_API_URL` / `RERANK_API_URL` / `LLM_MODEL`），重启 dsh；
