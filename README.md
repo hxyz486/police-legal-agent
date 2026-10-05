@@ -47,21 +47,9 @@ POST /assess   {"text":"【当事人信息】…【警情内容及处置情况�
 
 同一个组合包还会注册一个 **Agent 预设「警务助手」**（`dsh.bundle.patch` 的第二个文件 `dsh-preset-jingwu/cordis.patch.yml`）：新建任务时在 **设置 → Agent 预设** 里选中它，Agent 就按执法辅助模式工作——法条问题一律先调 `law_qa`、警情研判先调 `risk_assess`、xlsx 批量走 `risk_assess_batch`，回答保持带 `sources` 引用的一句话金标形态。
 
-模型网关凭据不随插件分发，两种配置方式任选：
+模型通道**不用单独配置**：MCP 服务启动时自己读 dsh 的配置——密钥取 `$DSH_HOME/.credentials.yaml` 的 refs，接口地址与模型名取 profile 里声明的 provider（`src/dsh_llm.py`）。只有显式设置 `LLM_API_URL` / `LLM_API_KEY` / `LLM_MODEL` 环境变量时才覆盖（容器、命令行或非 dsh 客户端用）。
 
-1. **环境变量**：在系统/用户环境变量设置 `LLM_API_URL` / `LLM_API_KEY`（可选 `EMBEDDING_API_URL` / `RERANK_API_URL` / `LLM_MODEL`），重启 dsh；
-2. **profile 覆写**：编辑 `~/.dsh/profiles/desktop/cordis.patch.yml`，对插件插入的条目做 id 定向配置覆写：
-
-```yaml
-- id: mcp-police-legal-agent
-  config:
-    env:
-      LLM_API_URL: 'http://<网关>/v1'
-      LLM_API_KEY: '<密钥>'
-      LLM_MODEL: '<模型名>'
-```
-
-未配置密钥时插件仍可安装启动，工具自动降级（问答走确定性规则合成层，研判返回降级结构）。任意其他 MCP 客户端（Claude Desktop、Cline 等）也可直接 stdio 接入 `mcp_server.py`。
+在 dsh 里取不到可用通道时插件仍会启动，工具自动降级（问答走确定性规则合成层，研判返回降级结构）。其他 MCP 客户端（Claude Desktop、Cline 等）可显式设置上述环境变量后 stdio 接入 `mcp_server.py`。
 
 ### 3. 批量研判 CLI
 

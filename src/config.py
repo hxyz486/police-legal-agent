@@ -1,7 +1,21 @@
 # -*- coding: utf-8 -*-
-"""配置：接口地址、密钥、路径全部从环境变量读取，禁止硬编码敏感信息。"""
+"""配置：模型通道默认取自 DSH 自己的配置，其余（路径/参数）走环境变量。
+
+模型通道（URL / 密钥 / 模型名）不需要单独配置：未显式设置 LLM_* 环境变量时，
+由 dsh_llm 从 $DSH_HOME/.credentials.yaml 与 profile 的 cordis.patch.yml /
+cordis.yml 里解析出 DSH 正在使用的那条 API-key 通道；显式环境变量优先级最高
+（容器/命令行/评测环境仍可整体覆盖）。
+"""
 import os
 import re
+
+try:  # 平铺导入（mcp_server.py 把 src/ 放进 sys.path）
+    import dsh_llm
+except ImportError:  # 以包形式导入（src.config）时的回退
+    from . import dsh_llm  # type: ignore
+
+# 必须在下面读取 LLM_* 之前生效；返回解析摘要（不含密钥）
+DSH_LLM_SOURCE = dsh_llm.apply_env_defaults()
 
 # 仓库根目录（src/ 的上一级）：本地直接运行时所有默认路径都相对仓库根，
 # 容器内由 Dockerfile 显式注入 /app 前缀的环境变量覆盖。
@@ -284,7 +298,10 @@ def _v1_url(url: str, suffix: str) -> str:
 
 def llm_chat_url() -> str:
     if not LLM_API_URL:
-        raise ValueError("环境变量 LLM_API_URL 未配置")
+        raise ValueError(
+            "未能确定模型通道：环境变量 LLM_API_URL 未设置，且从 dsh 配置"
+            "（$DSH_HOME/.credentials.yaml + profile 的 provider 声明）里也没解析到；"
+            "详见 src/dsh_llm.py")
     return _v1_url(LLM_API_URL, "/chat/completions")
 
 

@@ -1,10 +1,11 @@
 # police-legal-agent 的 dsh 组合包补丁：注册 law_qa / risk_assess / risk_assess_batch
 # 三个 MCP 工具。安装本插件后，dsh 会话中出现 mcp__police-legal-agent__* 工具。
 #
-# 模型网关凭据不随插件分发：默认继承环境变量（LLM_API_URL / LLM_API_KEY /
-# EMBEDDING_API_URL / ...，可在系统/用户环境变量里设置，或用 profile 的
-# cordis.patch.yml 对 id `mcp-police-legal-agent` 做 config 覆写注入）。
-# 未配置密钥时工具自动降级（问答走规则合成层，研判返回降级结构）。
+# 模型通道不用单独配置：MCP 服务启动时自己从 dsh 的配置解析（凭据取
+# $DSH_HOME/.credentials.yaml 的 refs，URL/模型取 profile 里声明的 provider），
+# 见 src/dsh_llm.py。只有显式设置 LLM_API_URL / LLM_API_KEY / LLM_MODEL 时才覆盖
+# （容器、命令行、评测环境用）。
+# 未取到密钥时工具自动降级（问答走规则合成层，研判返回降级结构）。
 - insert:
     - id: mcp-police-legal-agent
       name: "@deepseek-ai/dsh-mcp-client"
@@ -16,4 +17,10 @@
           # 本插件被 pnpm 装进 profile 的 node_modules，安装路径因机器而异，
           # 激活时用 USERPROFILE 动态解析（桌面版默认 profile 为 desktop）。
           - !!js process.env.USERPROFILE + '/.dsh/profiles/desktop/node_modules/police-legal-agent/mcp_server.py'
+        env:
+          # 仅保留非凭据的时延调参（dsh 场景下把两次可选 LLM 调用关掉、索引等待压短）。
+          QUERY_EXPANSION: '0'
+          SECOND_PASS: '0'
+          KB_MAX_WAIT_SECONDS: '5'
+          QA_WAIT_READY_SECONDS: '5'
         toolCallTimeoutMs: 600000

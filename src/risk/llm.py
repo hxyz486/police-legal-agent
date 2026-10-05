@@ -166,7 +166,7 @@ def chat(messages, temperature: float = 0.0, max_tokens: int = None,
                         move_next_model = True
                         break
                     if kind == "auth":
-                        log.error("认证失败(401/403)：请检查 LLM_API_KEY 注入是否正确")
+                        log.error("认证失败(401/403)：请核对 dsh 配置（或 LLM_API_KEY 环境变量）提供的密钥")
                         raise RuntimeError(f"认证失败：{e}") from e
                     if kind == "param":
                         log.warning("参数形态被拒，退化载荷重试：%s", errors[-1])

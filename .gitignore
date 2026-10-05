@@ -7,4 +7,5 @@ output/
 input/*.xlsx
 *.tar
 *.tar.gz
+*.bak
 .env

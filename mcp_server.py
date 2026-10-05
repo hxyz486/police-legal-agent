@@ -7,22 +7,11 @@
 - risk_assess(text)                   警情反馈单风险研判（人员/等级/法律依据）
 - risk_assess_batch(input, output)    批量研判 xlsx（共识投票/原子落盘/失败补跑）
 
-配置全部走环境变量（LLM_API_URL / LLM_API_KEY / EMBEDDING_API_URL / ...），
-与统一 HTTP 服务共用同一套引擎模块；知识库索引在首次工具调用时懒构建，
-Embedding 端点不可用时自动降级为关键词检索。
+模型通道不用单独配置：启动时自动从 DSH 自己的配置解析（$DSH_HOME/.credentials.yaml
+的 refs + profile 的 cordis.patch.yml / cordis.yml 里声明的 provider），得到
+LLM_API_URL / LLM_API_KEY / LLM_MODEL；只有显式设置这些环境变量时才覆盖（容器、
+命令行、评测环境用）。Embedding 端点不可用时自动降级为关键词检索。
 
-dsh 注册示例（~/.dsh/profiles/desktop/cordis.patch.yml 的 insert 列表）：
-    - id: mcp-police-legal-agent
-      name: "@deepseek-ai/dsh-mcp-client"
-      config:
-        serverName: police-legal-agent
-        transport: stdio
-        command: <python 解释器路径>
-        args: [<本文件路径>]
-        env:
-          LLM_API_URL: <模型网关地址>
-          LLM_API_KEY: <密钥>
-        toolCallTimeoutMs: 600000
 工具在 dsh 会话中出现为 mcp__police-legal-agent__law_qa 等名字。
 """
 import asyncio

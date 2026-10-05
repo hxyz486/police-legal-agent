@@ -1,6 +1,16 @@
 # -*- coding: utf-8 -*-
-"""配置：路径与 LLM 接口参数均从环境变量读取，禁止硬编码敏感信息。"""
+"""配置（risk 子包）：模型通道默认取自 DSH 自己的配置，其余走环境变量。"""
 import os
+import sys
+
+# risk 子包既有平铺导入（src/ 在 sys.path）也有 src.risk 形式，两种都保证能
+# 找到 src/dsh_llm.py，并把 DSH 的模型配置写进 LLM_* 的默认值（环境变量优先）。
+_SRC_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SRC_DIR not in sys.path:
+    sys.path.insert(0, _SRC_DIR)
+import dsh_llm  # noqa: E402
+
+dsh_llm.apply_env_defaults()
 
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

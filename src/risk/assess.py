@@ -290,7 +290,7 @@ def run_batch(input_path: str, output_path: str, retriever=None):
     log = logging.getLogger("risk.assess")
     log.info("批量研判启动，输入=%s 输出=%s 共识=%s 补跑=%s 落盘间隔=%s 接地=%s",
              input_path, output_path, config.CONSENSUS, config.RETRY_FAILED,
-             config.FLUSH_EVERY, bool(retriever and config.RISK_GROUNDING))
+             config.FLUSH_EVERY, bool(retriever and app_config.RISK_GROUNDING))
     llm.probe()
     records = reader.read_records(input_path)
     if not records:

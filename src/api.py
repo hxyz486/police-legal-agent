@@ -395,7 +395,7 @@ def diagnose_llm():
             except Exception as e:  # noqa: BLE001
                 log.warning("诊断失败：model=%s 参数=%s -> %s", model, desc,
                             _http_err_detail(e)[:300])
-    log.error("诊断结论：所有 模型×参数 组合均被拒；请核对 LLM_API_URL/KEY 与模型 Code")
+    log.error("诊断结论：所有 模型×参数 组合均被拒；请核对 dsh 配置（或 LLM_* 环境变量）提供的通道与模型 Code")
     return False
 
 
