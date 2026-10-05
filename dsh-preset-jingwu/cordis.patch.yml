@@ -21,26 +21,27 @@
             - Bounded Output：不堆砌表格；不写"执法提示/注意事项"等用户没问的段落；一次回答不超过 300 字（用户明确要求展开除外）。
             - Thinking Disruption: 同一假设的推理不超过两遍，缺事实立即调用工具核实。
             - Parallel Inspection: 多个独立查证并行发多个工具调用。
-      # 以下三个模块随本组合包一起安装，必须按「已安装包名 + 子路径」引用。
-      # patch 加载只把 insert 行自身（及嵌套 group）的 ./ 相对名锚定到 patch
-      # 文件旁；config.plugins 里的 name 不在其列，会按 preset 树的 baseUrl
-      # （profile 目录）解析，从而 ERR_MODULE_NOT_FOUND → 该行 never started
-      # → 整个预设挂载被拒（界面显示「加载失败」）。
+      # 以下三个模块随本组合包（police-legal-agent）一起安装，按「已安装包名 +
+      # 子路径」引用。patch 加载只把 insert 行自身（及嵌套 group）的 ./ 相对名
+      # 锚定到 patch 文件旁；config.plugins 里的 name 不在其列，会按 preset 树的
+      # baseUrl（profile 目录）解析，从而 ERR_MODULE_NOT_FOUND → 该行 never
+      # started → 整个预设挂载被拒（界面显示「加载失败」）。
+      # 本文件由根包 package.json 的 dsh.bundle.patch 列表引用，因此包名是根包名。
       - id: minimal-prompt
-        name: 'police-legal-agent-jingwu-preset/minimal-prompt.mjs'
+        name: 'police-legal-agent/dsh-preset-jingwu/minimal-prompt.mjs'
         config:
           keepPlanPolicy: true
           instructionSource: host
           instructionMaxBytes: 65536
       - id: tool-catalog
-        name: 'police-legal-agent-jingwu-preset/tool-catalog.mjs'
+        name: 'police-legal-agent/dsh-preset-jingwu/tool-catalog.mjs'
         config:
           descriptionMaxLength: 200
           presentation: ptc
           pagedToolPatterns: []
           maxResidentTokens: 6000
       - id: working-context
-        name: 'police-legal-agent-jingwu-preset/working-context.mjs'
+        name: 'police-legal-agent/dsh-preset-jingwu/working-context.mjs'
       - id: agent-instructions
         name: '@deepseek-ai/dsh-agent-instructions'
         config:

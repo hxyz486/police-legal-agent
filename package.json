@@ -6,7 +6,10 @@
   "license": "MIT",
   "dsh": {
     "bundle": {
-      "patch": "dsh/cordis.patch.yml"
+      "patch": [
+        "dsh/cordis.patch.yml",
+        "dsh-preset-jingwu/cordis.patch.yml"
+      ]
     }
   }
 }
