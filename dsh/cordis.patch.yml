@@ -23,4 +23,8 @@
           SECOND_PASS: '0'
           KB_MAX_WAIT_SECONDS: '5'
           QA_WAIT_READY_SECONDS: '5'
-        toolCallTimeoutMs: 600000
+          # 批量研判并发：每条要 2~3 次模型调用（双投票+仲裁），默认 4 并发时 50 条约 11 分钟；
+          # 提到 8 可近似减半，判定逻辑与质量不变。
+          MAX_WORKERS: '8'
+        # 50 条批量在 8 并发下约 6 分钟，留足余量避免工具调用被超时截断。
+        toolCallTimeoutMs: 1200000

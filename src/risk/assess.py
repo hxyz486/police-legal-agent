@@ -24,6 +24,12 @@ from . import reader
 from . import validate as validate_mod
 from . import writer
 
+# 顶层统一配置（src/config.py）：RISK_GROUNDING / RISK_GROUNDING_TOP_K / LAWS_DIR
+# 都在那里；risk.config 只是 risk 子包自己那份。必须模块级导入——run_batch 之前
+# 是直接引用 app_config 而没有导入，批量研判一调用就 NameError（单条研判因为走
+# 另一个函数里的局部 import 才没暴露）。src 由 risk/config.py 放进 sys.path。
+import config as app_config  # noqa: E402
+
 DEGRADED_REASON = "模型调用失败，降级输出"
 
 
