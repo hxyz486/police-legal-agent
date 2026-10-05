@@ -50,10 +50,11 @@ RERANK_API_URL = os.environ.get("RERANK_API_URL", "").rstrip("/")
 RERANK_API_KEY = os.environ.get("RERANK_API_KEY", "")
 RERANK_MODEL = os.environ.get("RERANK_MODEL", "")
 
-# 检索参数
-TOP_CANDIDATES = int(os.environ.get("TOP_CANDIDATES", "48"))   # 向量粗排候选数
-RERANK_TOP_N = int(os.environ.get("RERANK_TOP_N", "20"))       # 精排保留数
-TOP_CONTEXTS = int(os.environ.get("TOP_CONTEXTS", "16"))        # 送入 LLM 的条文数
+# 检索参数。默认值按 dsh 场景校准：模型侧上下文以百万字计，检索只做粗筛，
+# 挑选交给模型判断（比赛时代 16 条/6000 字的限制是为低配网关延迟设的，不再适用）。
+TOP_CANDIDATES = int(os.environ.get("TOP_CANDIDATES", "64"))   # 向量粗排候选数
+RERANK_TOP_N = int(os.environ.get("RERANK_TOP_N", "32"))       # 精排保留数
+TOP_CONTEXTS = int(os.environ.get("TOP_CONTEXTS", "32"))        # 送入 LLM 的条文数
 KEYWORD_WEIGHT = float(os.environ.get("KEYWORD_WEIGHT", "0.25"))  # 关键词分权重
 
 # LLM 参数
@@ -82,7 +83,7 @@ LLM_STREAM = os.environ.get("LLM_STREAM", "0") == "1"
 LLM_ENABLE_THINKING = os.environ.get("LLM_ENABLE_THINKING", "1") == "1"
 # 思考模式推理 token 预算（限制延迟）
 LLM_THINKING_BUDGET = int(os.environ.get("LLM_THINKING_BUDGET", "160"))
-MAX_INPUT_CHARS = int(os.environ.get("MAX_INPUT_CHARS", "6000"))
+MAX_INPUT_CHARS = int(os.environ.get("MAX_INPUT_CHARS", "24000"))  # 1M 上下文模型完全容纳；截断逻辑仍保证问题永不丢失
 # 思考强度(官方接口文档风格): chat_template_kwargs.reasoning_effort, low/medium/high
 # 真实环境 qwen3.8 固定 low 档且不允许更改, 故默认 low; 留空则不发送
 LLM_REASONING_EFFORT = os.environ.get("LLM_REASONING_EFFORT", "low")
@@ -105,7 +106,7 @@ QA_WAIT_READY_SECONDS = int(os.environ.get("QA_WAIT_READY_SECONDS", "120"))
 # /qa 单题硬墙钟上限：超过即用“检索原文兜底”返回 200（防模型端异常拖死导致评测超时/0分）
 QA_DEADLINE_SECONDS = int(os.environ.get("QA_DEADLINE_SECONDS", "200"))
 # 关键词召回通道深度(与向量通道取并集后再精排)
-KW_TOP_K = int(os.environ.get("KW_TOP_K", "20"))
+KW_TOP_K = int(os.environ.get("KW_TOP_K", "40"))
 
 # 查询扩展: 检索前用 LLM 把问题改写为若干条含法律术语的查询做并集召回,
 # 弥补口语表述与法条原文用词差异造成的召回缺口; 失败自动退回单查询

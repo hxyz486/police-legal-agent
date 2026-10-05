@@ -63,8 +63,16 @@ def parse_law_file(path):
     def flush():
         if cur_no and cur_buf:
             text = "\n".join(cur_buf).strip()
-            if text:
-                articles.append(Article(law_name, cur_no, text))
+            if not text:
+                return
+            # 单"条"超过 2000 字必然是网页 dump 之类没按"第X条"分段的文档被
+            # 并成了一个块——整条丢弃并告警，避免巨块在检索里靠覆盖面压过
+            # 真条文（现行法律单条正文最长约 600 字）。
+            if len(text) > 2000:
+                log.warning("《%s》%s 正文 %d 字，疑似未分段的网页 dump，跳过该条",
+                            law_name, cur_no, len(text))
+                return
+            articles.append(Article(law_name, cur_no, text))
 
     for ln in lines[2:]:
         if _STRUCT_RE.match(ln):

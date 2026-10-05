@@ -256,7 +256,7 @@ def assess_one(text: str, retriever=None):
 
         def _cited(r):
             law = r.get("law_name", "")
-            short = law[4:] if law.startswith("中华人民共和国") else law
+            short = law.replace("中华人民共和国", "", 1)
             return (short and short in hay and r.get("article", "") in hay) or \
                    (law in hay and r.get("article", "") in hay)
         refs = [r for r in refs if _cited(r)]

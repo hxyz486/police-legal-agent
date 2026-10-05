@@ -184,7 +184,7 @@ class Retriever(object):
             if not cands:
                 return []
             ranked = self._rerank(query, cands)
-            top = ranked[:top_k]
+            top = self._pin_named_articles(query, ranked)[:top_k]
             log.info("检索[%s]: 变体%d条, 候选%d条, top%d: %s", (query or "")[:30],
                      len(variants), len(cands), len(top),
                      ["%s%s(%.3f)" % (self.articles[i].law_name, self.articles[i].article, s)
@@ -194,6 +194,34 @@ class Retriever(object):
             log.error("检索失败：%s: %s", type(e).__name__, e)
             return []
 
+    def _pin_named_articles(self, query, ranked, max_pin=3):
+        """问题点名了"法名+条号"（如"人民警察法第九条规定了什么制度"）时，
+        把该条文钉到结果最前。关键词 bigram 对这种精确指向反而乏力：
+        法名/序数词的 bigram 在全库高频，会被同主题短条文稀释（实测缺陷）。
+        只在查询字符串同时出现法名（全称或去"中华人民共和国"短名）与
+        完整条号时触发，最多钉 max_pin 条；其余结果保持原序。"""
+        try:
+            q = query or ""
+            if "条" not in q:
+                return ranked
+            pinned = []
+            for i, a in enumerate(self.articles):
+                if len(pinned) >= max_pin:
+                    break
+                if not a.article or a.article not in q:
+                    continue
+                short = a.law_name.replace("中华人民共和国", "", 1)
+                if short in q or a.law_name in q:
+                    pinned.append((i, 1.0))
+            if not pinned:
+                return ranked
+            pin_set = {i for i, _ in pinned}
+            rest = [(i, s) for i, s in ranked if i not in pin_set]
+            log.info("点名条文钉位: %s", [self.articles[i].article for i, _ in pinned])
+            return pinned + rest
+        except Exception:  # noqa: BLE001
+            return ranked
+
     def _candidates(self, variants):
         """多查询变体的候选并集：关键词通道各取 top M + 向量通道各取
         top N 轮转交错，保证每个变体的高分条文都进入精排候选。"""
@@ -201,11 +229,14 @@ class Retriever(object):
         kw_picked, kw_seen = [], set()
         for q in variants:
             qgrams = _bigrams(q)
+            nq = len(qgrams) or 1
             kw_scores = {}
             for i, grams in enumerate(self.doc_grams):
                 inter = qgrams & grams
                 if inter:
-                    s = sum(self.idf.get(g, 1.0) for g in inter) / (len(qgrams) or 1)
+                    # 文档长度归一（cosine 思路）：不加的话，网页 dump 解析出的
+                    # 超长条文块靠 bigram 覆盖面碾压精准命中的短条文（实测缺陷）。
+                    s = sum(self.idf.get(g, 1.0) for g in inter) / (nq * len(grams)) ** 0.5
                     kw_scores[i] = s
                     if s > kw_best.get(i, 0.0):
                         kw_best[i] = s
